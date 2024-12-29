@@ -1,15 +1,20 @@
 "use client";
 
-import { useState, MouseEvent } from 'react';
+import { useState, MouseEvent, useRef, useEffect } from 'react';
 
 const GRID_SIZE = 32;
 const SHADE_DECREMENT = 50;
 
 export default function Home() {
   const [isDrawing, setIsDrawing] = useState(false);
+  const gridRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const handleMouseDown = () => setIsDrawing(true);
-  const handleMouseUp = () => setIsDrawing(false);
+  const handleMouseUp = () => {
+    setIsDrawing(false);
+    convertGridToImage();
+  };
 
   const handleMouseOver = (e: MouseEvent<HTMLDivElement>) => {
     if (isDrawing) {
@@ -59,12 +64,41 @@ export default function Home() {
     }
   };
 
+  const convertGridToImage = () => {
+    const grid = gridRef.current;
+    const canvas = canvasRef.current;
+    if (grid && canvas) {
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        const cells = grid.children;
+        for (let i = 0; i < cells.length; i++) {
+          const cell = cells[i] as HTMLElement;
+          const color = cell.style.backgroundColor || 'rgb(255, 255, 255)';
+          const row = Math.floor(i / GRID_SIZE);
+          const col = i % GRID_SIZE;
+          ctx.fillStyle = color;
+          ctx.fillRect(col * 10, row * 10, 10, 10); // Assuming each cell is 10x10 pixels
+        }
+        const image = canvas.toDataURL('image/png');
+        console.log(image); // You can use this image URL as needed
+      }
+    }
+  };
+
   const handleReset = () => {
     const cells = document.querySelectorAll('.grid-cell');
     cells.forEach(cell => {
       (cell as HTMLElement).style.backgroundColor = 'rgb(255, 255, 255)';
     });
   };
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (canvas) {
+      canvas.width = GRID_SIZE * 10; // Assuming each cell is 10x10 pixels
+      canvas.height = GRID_SIZE * 10;
+    }
+  }, []);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
@@ -74,10 +108,11 @@ export default function Home() {
           onMouseDown={handleMouseDown}
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseUp}
+          ref={gridRef}
         >
           {Array.from({ length: 32 * 32 }).map((_, index) => (
             <div
-              key={index}
+              key={index} 
               className="grid-cell"
               style={{ width: '20px', height: '20px', border: '1px solid black', backgroundColor: 'rgb(255, 255, 255)' }}
               onMouseOver={handleMouseOver}
@@ -85,6 +120,7 @@ export default function Home() {
           ))}
         </div>
       </main>
+      <canvas ref={canvasRef} style={{ display: 'none' }}></canvas>
       <button onClick={handleReset} style={{ marginTop: '20px', padding: '10px 20px', border: '1px solid black', background: 'none', cursor: 'pointer' }}>Reset Grid</button>
       <footer>
       </footer>
